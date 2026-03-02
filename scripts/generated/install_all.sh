@@ -143,6 +143,7 @@ install_all() {
     install_agents_claude
     install_agents_codex
     install_agents_gemini
+    install_agents_opencode
     log_section "Category: tools"
     install_tools_vault
     log_section "Category: db"

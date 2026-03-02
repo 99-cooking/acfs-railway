@@ -140,6 +140,7 @@ declare -a MANIFEST_CHECKS=(
     "agents.claude	Claude Code	~/.local/bin/claude --version || ~/.local/bin/claude --help	required"
     "agents.codex	OpenAI Codex CLI	~/.local/bin/codex --version || ~/.local/bin/codex --help	required"
     "agents.gemini	Google Gemini CLI	~/.local/bin/gemini --version || ~/.local/bin/gemini --help	required"
+    "agents.opencode	OpenCode (multi-provider agent harness)	opencode --version || opencode --help	optional"
     "tools.vault	HashiCorp Vault CLI	vault --version	optional"
     "db.postgres18.1	PostgreSQL 18	psql --version	optional"
     "db.postgres18.2	PostgreSQL 18	systemctl status postgresql --no-pager	optional"

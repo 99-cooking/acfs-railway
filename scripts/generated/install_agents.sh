@@ -93,7 +93,7 @@ acfs_security_init() {
 }
 
 # Category: agents
-# Modules: 3
+# Modules: 4
 
 # Claude Code
 install_agents_claude() {
@@ -300,7 +300,12 @@ install_agents_opencode() {
 curl -fsSL https://opencode.ai/install | bash
 INSTALL_AGENTS_OPENCODE
         then
-            log_warn "agents.opencode: install command failed (optional)"
+            log_warn "agents.opencode: install command failed: curl -fsSL https://opencode.ai/install | bash"
+            if type -t record_skipped_tool >/dev/null 2>&1; then
+              record_skipped_tool "agents.opencode" "install command failed: curl -fsSL https://opencode.ai/install | bash"
+            elif type -t state_tool_skip >/dev/null 2>&1; then
+              state_tool_skip "agents.opencode"
+            fi
             return 0
         fi
     fi
@@ -313,7 +318,12 @@ INSTALL_AGENTS_OPENCODE
 opencode --version || opencode --help
 INSTALL_AGENTS_OPENCODE
         then
-            log_warn "agents.opencode: verify failed (optional)"
+            log_warn "agents.opencode: verify failed: opencode --version || opencode --help"
+            if type -t record_skipped_tool >/dev/null 2>&1; then
+              record_skipped_tool "agents.opencode" "verify failed: opencode --version || opencode --help"
+            elif type -t state_tool_skip >/dev/null 2>&1; then
+              state_tool_skip "agents.opencode"
+            fi
             return 0
         fi
     fi
@@ -327,10 +337,7 @@ install_agents() {
     install_agents_claude
     install_agents_codex
     install_agents_gemini
-    # OpenCode is optional - install if INSTALL_OPENCODE=true
-    if [[ "${INSTALL_OPENCODE:-false}" = "true" ]]; then
-        install_agents_opencode
-    fi
+    install_agents_opencode
 }
 
 # Run if executed directly
