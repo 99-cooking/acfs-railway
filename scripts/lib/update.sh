@@ -2138,7 +2138,7 @@ update_atuin() {
     else
         # Fallback to reinstall via official installer with checksum verification
         if update_require_security; then
-            run_cmd "Atuin (reinstall)" update_run_verified_installer atuin
+            run_cmd "Atuin (reinstall)" update_run_verified_installer atuin --non-interactive
         else
             # Last resort: no checksum verification available
             if [[ "$YES_MODE" == "true" ]]; then

@@ -583,6 +583,7 @@ modules:
     verified_installer:
       tool: atuin
       runner: sh
+      args: ["--", "--non-interactive"]
     install: []
     verify:
       - ~/.atuin/bin/atuin --version

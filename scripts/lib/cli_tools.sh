@@ -496,7 +496,7 @@ install_atuin() {
         return 1
     fi
 
-    if ! _cli_run_as_user "source '$CLI_TOOLS_SCRIPT_DIR/security.sh'; verify_checksum '$url' '$expected_sha256' 'atuin' | sh"; then
+    if ! _cli_run_as_user "source '$CLI_TOOLS_SCRIPT_DIR/security.sh'; verify_checksum '$url' '$expected_sha256' 'atuin' | sh -s -- --non-interactive"; then
         log_warn "Could not install atuin"
     fi
 

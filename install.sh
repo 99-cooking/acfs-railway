@@ -3862,7 +3862,7 @@ install_languages_legacy_tools() {
         log_detail "Atuin already installed"
     else
         log_detail "Installing Atuin for $TARGET_USER"
-        try_step "Installing Atuin" acfs_run_verified_upstream_script_as_target "atuin" "sh" || return 1
+        try_step "Installing Atuin" acfs_run_verified_upstream_script_as_target "atuin" "sh" "--non-interactive" || return 1
     fi
 
     # Zoxide - prefer apt to avoid GitHub API rate limits in CI
