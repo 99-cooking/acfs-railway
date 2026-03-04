@@ -2034,11 +2034,11 @@ modules:
       - |
         # Build rust_proxy from source (no install.sh available)
         TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "$TMPDIR"' EXIT
         git clone --depth 1 https://github.com/Dicklesworthstone/rust_proxy.git "$TMPDIR/rust_proxy"
         cd "$TMPDIR/rust_proxy"
         cargo build --release
         cp target/release/rust_proxy ~/.cargo/bin/
-        rm -rf "$TMPDIR"
     verify:
       - rust_proxy --help || rust_proxy --version
 
@@ -2059,11 +2059,11 @@ modules:
       - |
         # Build aadc from source (no install.sh available)
         TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "$TMPDIR"' EXIT
         git clone --depth 1 https://github.com/Dicklesworthstone/aadc.git "$TMPDIR/aadc"
         cd "$TMPDIR/aadc"
         cargo build --release
         cp target/release/aadc ~/.cargo/bin/
-        rm -rf "$TMPDIR"
     verify:
       - aadc --help || aadc --version
 
@@ -2084,11 +2084,11 @@ modules:
       - |
         # Build caut from source (no install.sh available)
         TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "$TMPDIR"' EXIT
         git clone --depth 1 https://github.com/Dicklesworthstone/coding_agent_usage_tracker.git "$TMPDIR/caut"
         cd "$TMPDIR/caut"
         cargo build --release
         cp target/release/caut ~/.cargo/bin/
-        rm -rf "$TMPDIR"
     verify:
       - caut --help || caut --version
 

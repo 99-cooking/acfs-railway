@@ -13,7 +13,7 @@ const DEFAULT_PORT = 3000;
 const parsedPort = Number.parseInt(process.env.PW_PORT || process.env.PORT || "", 10);
 const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : DEFAULT_PORT;
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${port}`;
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${port}`;
 
 // Skip local webServer when testing against external URL (e.g., production)
 const isExternalUrl = !!process.env.PLAYWRIGHT_BASE_URL;
@@ -44,9 +44,9 @@ const webServerCommand = (() => {
   // Default to production server for stability (matches CI behavior).
   // Override locally with PW_USE_DEV_SERVER=1 if needed.
   if (!isCI && process.env.PW_USE_DEV_SERVER === "1") {
-    return `bun run dev -- --port ${port}`;
+    return `bun run dev -- -H 127.0.0.1 --port ${port}`;
   }
-  return `bun run build && bun run start -- -p ${port}`;
+  return `bun run build && bun run start -- -H 127.0.0.1 -p ${port}`;
 })();
 
 export default defineConfig({
