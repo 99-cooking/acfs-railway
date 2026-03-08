@@ -57,9 +57,9 @@ _acfs_is_interactive() {
 }
 
 # curl defaults: enforce HTTPS (including redirects) when supported
-ACFS_CURL_BASE_ARGS=(-fsSL)
+ACFS_CURL_BASE_ARGS=(--connect-timeout 30 --max-time 300 -fsSL)
 if command -v curl &>/dev/null && curl --help all 2>/dev/null | grep -q -- '--proto'; then
-    ACFS_CURL_BASE_ARGS=(--proto '=https' --proto-redir '=https' -fsSL)
+    ACFS_CURL_BASE_ARGS=(--proto '=https' --proto-redir '=https' --connect-timeout 30 --max-time 300 -fsSL)
 fi
 
 acfs_curl() {

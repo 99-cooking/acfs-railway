@@ -181,9 +181,9 @@ github_fetch_with_backoff() {
     if declare -p ACFS_CURL_BASE_ARGS &>/dev/null && (( ${#ACFS_CURL_BASE_ARGS[@]} > 0 )); then
         curl_base_args=("${ACFS_CURL_BASE_ARGS[@]}")
     else
-        curl_base_args=(-fsSL)
+        curl_base_args=(--connect-timeout 30 --max-time 300 -fsSL)
         if command -v curl &>/dev/null && curl --help all 2>/dev/null | grep -q -- '--proto'; then
-            curl_base_args=(--proto '=https' --proto-redir '=https' -fsSL)
+            curl_base_args=(--proto '=https' --proto-redir '=https' --connect-timeout 30 --max-time 300 -fsSL)
         fi
     fi
 
@@ -362,7 +362,7 @@ github_download_installer() {
         if declare -f acfs_download_to_file &>/dev/null; then
             acfs_download_to_file "$url" "$output" "$name"
         else
-            curl -fsSL "$url" -o "$output"
+            curl --connect-timeout 30 --max-time 300 -fsSL "$url" -o "$output"
         fi
     fi
 }

@@ -2196,6 +2196,20 @@ update_atuin() {
     # Try atuin self-update first (available in newer versions)
     if atuin --help 2>&1 | grep -q "self-update"; then
         run_cmd "Atuin self-update" atuin self-update
+
+        # If self-update succeeded, check whether version is now current;
+        # skip the heavier reinstall path to avoid a stalling curl download.
+        local ver_after
+        ver_after=$(get_version "atuin")
+        if [[ -n "$ver_after" && "$ver_after" != "unknown" ]]; then
+            log_to_file "Atuin self-update succeeded (version: $ver_after), skipping reinstall"
+        else
+            # self-update ran but we can't determine version — fall through
+            log_to_file "Atuin self-update ran but version check inconclusive, trying reinstall"
+            if update_require_security; then
+                run_cmd "Atuin (reinstall)" update_run_verified_installer atuin --non-interactive
+            fi
+        fi
     else
         # Fallback to reinstall via official installer with checksum verification
         if update_require_security; then
@@ -2206,9 +2220,9 @@ update_atuin() {
                 log_item "skip" "Atuin" "checksum verification unavailable (missing security.sh/checksums.yaml)"
             else
                 log_item "skip" "Atuin" "no self-update command, manual update recommended"
-                local curl_cmd="curl -fsSL"
+                local curl_cmd="curl --connect-timeout 30 --max-time 300 -fsSL"
                 if command -v curl &>/dev/null && curl --help all 2>/dev/null | grep -q -- '--proto'; then
-                    curl_cmd="curl --proto '=https' --proto-redir '=https' -fsSL"
+                    curl_cmd="curl --proto '=https' --proto-redir '=https' --connect-timeout 30 --max-time 300 -fsSL"
                 fi
                 log_to_file "Atuin update (manual; review first):"
                 log_to_file "  ${curl_cmd} https://setup.atuin.sh -o /tmp/atuin.install.sh"
@@ -2239,9 +2253,9 @@ update_zoxide() {
         run_cmd "Zoxide (reinstall)" update_run_verified_installer zoxide
     else
         log_item "skip" "Zoxide" "checksum verification unavailable (missing security.sh/checksums.yaml)"
-        local curl_cmd="curl -fsSL"
+        local curl_cmd="curl --connect-timeout 30 --max-time 300 -fsSL"
         if command -v curl &>/dev/null && curl --help all 2>/dev/null | grep -q -- '--proto'; then
-            curl_cmd="curl --proto '=https' --proto-redir '=https' -fsSL"
+            curl_cmd="curl --proto '=https' --proto-redir '=https' --connect-timeout 30 --max-time 300 -fsSL"
         fi
         log_to_file "Zoxide update (manual; review first):"
         log_to_file "  ${curl_cmd} https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh -o /tmp/zoxide.install.sh"
