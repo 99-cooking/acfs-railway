@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "ttyd -p $PORT -t titleFixed='ACFS Terminal' -t theme=default /bin/zsh"
+startCommand = "ttyd -p $PORT -t titleFixed='ACFS Terminal' -c ${TTYD_USER:-admin}:${TTYD_PASS:-changeme} /bin/zsh"
 healthcheckPath = "/"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

@@ -191,4 +191,4 @@ EXPOSE 7681
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD curl -fsS http://localhost:${PORT:-7681}/ || exit 1
 
-CMD ["sh", "-c", "ttyd -p ${PORT:-7681} -t titleFixed='ACFS Terminal' /bin/zsh"]
+CMD ["sh", "-c", "ttyd -p ${PORT:-7681} -t titleFixed='ACFS Terminal' -c ${TTYD_USER:-admin}:${TTYD_PASS:-changeme} /bin/zsh"]
