@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl git ca-certificates unzip tar xz-utils jq build-essential \
     gnupg wget sudo zsh locales procps htop vim nano tmux \
-    cmake libwebsockets-dev libssl-dev pkg-config \
+    libssl-dev pkg-config \
     python3 python3-pip python3-venv \
     && locale-gen en_US.UTF-8 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -145,12 +145,10 @@ echo ""
 ZSHRC
 
 # ============================================================
-# Phase 8: ttyd (web terminal)
+# Phase 8: ttyd (web terminal) — prebuilt binary
 # ============================================================
-RUN git clone --depth 1 https://github.com/tsl0922/ttyd.git /tmp/ttyd \
-    && cd /tmp/ttyd && mkdir build && cd build \
-    && cmake .. && make -j$(nproc) && make install \
-    && cd / && rm -rf /tmp/ttyd
+RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
 
 # Final cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
