@@ -327,9 +327,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy to code-server (code-server handles /code base path itself)
+  // Proxy to code-server (strip /code prefix, trailing slash rewrite)
   if (url.pathname.startsWith("/code")) {
+    const origUrl = req.url;
+    req.url = req.url.replace(/^\/code\/?/, "/") || "/";
+    if (req.url === "" || req.url === undefined) req.url = "/";
     proxyRequest(req, res, CODE_SERVER_PORT);
+    req.url = origUrl;
     return;
   }
 
@@ -354,13 +358,14 @@ const server = http.createServer((req, res) => {
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  // code-server WebSocket
+  // code-server WebSocket (strip /code prefix)
   if (url.pathname.startsWith("/code")) {
     const port = CODE_SERVER_PORT;
+    const rewrittenPath = req.url.replace(/^\/code\/?/, "/") || "/";
     const options = {
       hostname: "127.0.0.1",
       port,
-      path: req.url,
+      path: rewrittenPath,
       method: "GET",
       headers: { ...req.headers, host: `127.0.0.1:${port}` },
     };

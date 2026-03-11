@@ -515,7 +515,6 @@ if command -v code-server &>/dev/null; then
         --auth none \
         --disable-telemetry \
         --app-name 'ACFS Code' \
-        --base-path /code \
         /data/projects" &
     echo "code-server started on internal port 18080"
 fi
