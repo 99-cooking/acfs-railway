@@ -266,9 +266,31 @@ function dashboardHTML(sessions) {
 </html>`;
 }
 
+// Basic auth check
+function checkAuth(req, res) {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith("Basic ")) {
+    res.writeHead(401, { "WWW-Authenticate": 'Basic realm="ACFS"' });
+    res.end("Unauthorized");
+    return false;
+  }
+  const [user, pass] = Buffer.from(auth.split(" ")[1], "base64")
+    .toString()
+    .split(":");
+  if (user !== TTYD_USER || pass !== TTYD_PASS) {
+    res.writeHead(401, { "WWW-Authenticate": 'Basic realm="ACFS"' });
+    res.end("Unauthorized");
+    return false;
+  }
+  return true;
+}
+
 // Main HTTP server
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  // Require basic auth for all routes
+  if (!checkAuth(req, res)) return;
 
   // Dashboard
   if (url.pathname === "/" || url.pathname === "") {
