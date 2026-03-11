@@ -510,13 +510,21 @@ chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/nu
 
 # Start code-server in background (accessible via session manager dashboard)
 if command -v code-server &>/dev/null; then
-    su - "$TARGET_USER" -c "code-server \
-        --bind-addr 127.0.0.1:18080 \
-        --auth none \
-        --disable-telemetry \
-        --app-name 'ACFS Code' \
-        /data/projects" &
-    echo "code-server started on internal port 18080"
+    # Write config before starting
+    CS_CONFIG_DIR="$TARGET_HOME/.config/code-server"
+    mkdir -p "$CS_CONFIG_DIR"
+    cat > "$CS_CONFIG_DIR/config.yaml" << EOF
+bind-addr: 0.0.0.0:18080
+auth: password
+password: ${TTYD_PASS:-changeme}
+cert: false
+app-name: ACFS Code
+disable-telemetry: true
+EOF
+    chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$CS_CONFIG_DIR"
+
+    su - "$TARGET_USER" -c "code-server /data/projects" &
+    echo "code-server started on port 18080"
 fi
 
 # Start the session manager (dashboard + multi-session ttyd routing)
@@ -529,5 +537,6 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /data/projects
 EXPOSE 7681
+EXPOSE 18080
 
 CMD ["/usr/local/bin/entrypoint.sh"]

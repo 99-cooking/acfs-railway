@@ -17,7 +17,8 @@ const TTYD_PASS = process.env.TTYD_PASS || "changeme";
 const ACFS_USER = process.env.ACFS_USER || "dev";
 const ACFS_HOSTNAME = process.env.ACFS_HOSTNAME || "acfs";
 const BASE_TTYD_PORT = 17681; // internal ports for ttyd instances
-const CODE_SERVER_PORT = 18080; // internal code-server port
+const CODE_SERVER_PORT = 18080; // code-server's own port (separate Railway domain)
+const CODE_SERVER_URL = process.env.CODE_SERVER_URL || "#";
 
 // Track running ttyd instances: { sessionName: { port, process, pid } }
 const instances = new Map();
@@ -228,7 +229,7 @@ function dashboardHTML(sessions) {
   <div class="toolbar">
     <input type="text" id="newSession" placeholder="New session name..." onkeydown="if(event.key==='Enter')createSession()">
     <button class="btn btn-create" onclick="createSession()">+ New Session</button>
-    <a href="/code/" target="_blank" class="btn btn-code">⟨/⟩ VS Code</a>
+    <a href="${CODE_SERVER_URL}" target="_blank" class="btn btn-code">⟨/⟩ VS Code</a>
     <button class="btn btn-refresh" onclick="location.reload()">↻ Refresh</button>
   </div>
 
@@ -327,15 +328,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy to code-server (strip /code prefix, trailing slash rewrite)
-  if (url.pathname.startsWith("/code")) {
-    const origUrl = req.url;
-    req.url = req.url.replace(/^\/code\/?/, "/") || "/";
-    if (req.url === "" || req.url === undefined) req.url = "/";
-    proxyRequest(req, res, CODE_SERVER_PORT);
-    req.url = origUrl;
-    return;
-  }
+  // code-server runs on its own port (18080) with its own Railway domain
 
   // Proxy to ttyd session
   const sessionMatch = url.pathname.match(/^\/s\/([a-zA-Z0-9_-]+)(\/.*)?$/);
@@ -357,34 +350,6 @@ const server = http.createServer((req, res) => {
 // Handle WebSocket upgrades (critical for ttyd and code-server)
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
-
-  // code-server WebSocket (strip /code prefix)
-  if (url.pathname.startsWith("/code")) {
-    const port = CODE_SERVER_PORT;
-    const rewrittenPath = req.url.replace(/^\/code\/?/, "/") || "/";
-    const options = {
-      hostname: "127.0.0.1",
-      port,
-      path: rewrittenPath,
-      method: "GET",
-      headers: { ...req.headers, host: `127.0.0.1:${port}` },
-    };
-    const proxy = http.request(options);
-    proxy.on("upgrade", (proxyRes, proxySocket, proxyHead) => {
-      socket.write(
-        `HTTP/1.1 101 Switching Protocols\r\n` +
-          Object.entries(proxyRes.headers)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join("\r\n") +
-          "\r\n\r\n"
-      );
-      proxySocket.pipe(socket);
-      socket.pipe(proxySocket);
-    });
-    proxy.on("error", () => socket.destroy());
-    proxy.end();
-    return;
-  }
 
   const sessionMatch = url.pathname.match(/^\/s\/([a-zA-Z0-9_-]+)(\/.*)?$/);
 
