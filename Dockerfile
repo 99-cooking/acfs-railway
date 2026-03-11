@@ -21,7 +21,7 @@ ENV ACFS_USER=coder \
 # ============================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl git ca-certificates unzip tar xz-utils jq build-essential \
-    gnupg wget sudo zsh locales procps htop vim nano tmux \
+    gnupg wget sudo zsh locales procps htop vim nano tmux tree openssh-client \
     libssl-dev pkg-config \
     python3 python3-pip python3-venv \
     && locale-gen en_US.UTF-8 \
@@ -206,6 +206,47 @@ TARGET_HOME="/home/$TARGET_USER"
 if [ ! -f "$TARGET_HOME/.zshrc" ]; then
     echo "First boot: seeding home directory from skeleton..."
     cp -a /etc/skel-coder/. "$TARGET_HOME/" 2>/dev/null || true
+fi
+
+# SSH key setup (from env vars)
+SSH_DIR="$TARGET_HOME/.ssh"
+mkdir -p "$SSH_DIR"
+chmod 700 "$SSH_DIR"
+
+if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
+    echo "$SSH_PRIVATE_KEY" > "$SSH_DIR/id_ed25519"
+    chmod 600 "$SSH_DIR/id_ed25519"
+    echo "SSH private key installed."
+fi
+
+if [ -n "${SSH_PUBLIC_KEY:-}" ]; then
+    echo "$SSH_PUBLIC_KEY" > "$SSH_DIR/id_ed25519.pub"
+    chmod 644 "$SSH_DIR/id_ed25519.pub"
+    echo "SSH public key installed."
+fi
+
+# Default SSH config (persists in volume, only written on first boot)
+if [ ! -f "$SSH_DIR/config" ]; then
+    cat > "$SSH_DIR/config" <<'SSHCFG'
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking accept-new
+
+Host *
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking accept-new
+SSHCFG
+    chmod 600 "$SSH_DIR/config"
+fi
+
+# Git config from env vars
+if [ -n "${GIT_USER_NAME:-}" ]; then
+    su - "$TARGET_USER" -c "git config --global user.name '${GIT_USER_NAME}'"
+fi
+if [ -n "${GIT_USER_EMAIL:-}" ]; then
+    su - "$TARGET_USER" -c "git config --global user.email '${GIT_USER_EMAIL}'"
 fi
 
 # Ensure ownership
