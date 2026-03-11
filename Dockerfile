@@ -336,8 +336,9 @@ RUN (git clone --depth 1 https://github.com/Dicklesworthstone/source_to_prompt_t
 RUN rm -rf /opt/gopath/pkg /tmp/*
 
 # ============================================================
-# Phase 10: Copy ACFS repo config files (for agent workflow setup)
+# Phase 10: Copy session manager and ACFS repo config files
 # ============================================================
+COPY session-manager /opt/acfs-session-manager
 COPY acfs /opt/acfs-repo/acfs
 COPY .claude /opt/acfs-repo/.claude
 
@@ -474,14 +475,8 @@ chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || t
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/null || true
 
-# Start a persistent tmux session if not already running (survives browser disconnects)
-su - "$TARGET_USER" -c "tmux has-session -t main 2>/dev/null || tmux new-session -d -s main -c /data/projects" || true
-
-# Start ttyd — attach to tmux so sessions persist across browser reconnects
-exec ttyd -W -p "${PORT:-7681}" \
-    -c "${TTYD_USER:-admin}:${TTYD_PASS:-changeme}" \
-    -t titleFixed="${TARGET_HOSTNAME} terminal" \
-    su - "$TARGET_USER" -c "tmux attach-session -t main || tmux new-session -s main -c /data/projects"
+# Start the session manager (dashboard + multi-session ttyd routing)
+exec node /opt/acfs-session-manager/server.js
 ENTRYPOINT
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
