@@ -92,6 +92,18 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN npm install -g @openai/codex 2>/dev/null || echo "codex: not yet available via npm"
 RUN npm install -g @google/gemini-cli 2>/dev/null || echo "gemini: not yet available via npm"
 
+# OpenCode (terminal AI agent)
+RUN curl -fsSL "https://github.com/opencode-ai/opencode/releases/latest/download/opencode-linux-x86_64.tar.gz" \
+    | tar -xz -C /usr/local/bin/ opencode
+
+# oh-my-openagent (OpenCode enhancer — multi-model agent harness)
+RUN npm install -g oh-my-opencode 2>/dev/null || \
+    (git clone --depth 1 -b dev https://github.com/code-yeongyu/oh-my-openagent.git /tmp/omo \
+    && cd /tmp/omo && bun install && bun run build 2>/dev/null \
+    && npm install -g . \
+    && cd / && rm -rf /tmp/omo) \
+    || echo "oh-my-openagent: install skipped"
+
 # ============================================================
 # Phase 6: Dicklesworthstone Stack (Go tools)
 # ============================================================
@@ -159,7 +171,7 @@ alias cat="bat --paging=never"
 alias lg="lazygit"
 eval "$(zoxide init zsh)"
 echo "🚀 ACFS Railway — Agentic Coding Flywheel"
-echo "   claude | codex | gemini — ready to code"
+echo "   claude | codex | gemini | opencode — ready to code"
 echo ""
 ZSHRC
 RUN chown coder:coder /home/coder/.zshrc
