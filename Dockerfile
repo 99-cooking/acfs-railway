@@ -498,6 +498,17 @@ if [ -n "${DOTFILES_REPO:-}" ] && [ ! -f "$TARGET_HOME/.dotfiles-installed" ]; t
     echo "Dotfiles installed."
 fi
 
+# Apply oh-my-openagent patch to OpenCode on first boot
+if [ ! -f "$TARGET_HOME/.config/opencode/opencode.json" ] || ! grep -q "oh-my-opencode" "$TARGET_HOME/.config/opencode/opencode.json" 2>/dev/null; then
+    echo "Patching OpenCode with oh-my-openagent..."
+    # Default install: Claude=yes (most common), others configurable via env
+    su - "$TARGET_USER" -c "bunx oh-my-opencode install --no-tui \
+        --claude=${OMO_CLAUDE:-yes} \
+        --openai=${OMO_OPENAI:-no} \
+        --gemini=${OMO_GEMINI:-no} \
+        --copilot=${OMO_COPILOT:-no}" 2>/dev/null || echo "oh-my-openagent: patch skipped"
+fi
+
 # Seed AGENTS.md into workspace if not present (multi-agent instructions)
 if [ ! -f /data/projects/AGENTS.md ]; then
     cp /opt/acfs-repo/acfs/AGENTS.md /data/projects/AGENTS.md 2>/dev/null || true
