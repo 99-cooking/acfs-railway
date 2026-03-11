@@ -128,6 +128,10 @@ RUN curl -fsSL "https://releases.hashicorp.com/vault/1.17.2/vault_1.17.2_linux_a
     && unzip -q /tmp/vault.zip -d /usr/local/bin/ && rm /tmp/vault.zip \
     || echo "vault: install skipped"
 
+# Railway CLI
+RUN curl -fsSL https://raw.githubusercontent.com/railwayapp/cli/master/install.sh | bash \
+    || echo "railway: install skipped"
+
 # ============================================================
 # Phase 7: Dicklesworthstone Stack — Go tools
 # ============================================================
