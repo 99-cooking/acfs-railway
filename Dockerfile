@@ -13,7 +13,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     SHELL=/bin/zsh
 
 # Configurable user and hostname (override via Railway env vars)
-ENV ACFS_USER=coder \
+ENV ACFS_USER=dev \
     ACFS_HOSTNAME=acfs
 
 # ============================================================
@@ -138,23 +138,23 @@ RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86
 
 # ============================================================
 # Phase 8: Create default non-root user
-# We create a "coder" user at build time. The entrypoint
+# We create a "dev" user at build time. The entrypoint
 # script handles renaming user/hostname from env vars at runtime.
 # ============================================================
-RUN useradd -m -s /bin/zsh -G sudo coder \
-    && echo 'coder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/coder \
-    && chmod 0440 /etc/sudoers.d/coder \
+RUN useradd -m -s /bin/zsh -G sudo dev \
+    && echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev \
+    && chmod 0440 /etc/sudoers.d/dev \
     && mkdir -p /data/projects \
-    && chown coder:coder /data/projects
+    && chown dev:dev /data/projects
 
 # Install Oh My Zsh + plugins for the default user
-RUN su - coder -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' \
-    && git clone --depth 1 https://github.com/romkatv/powerlevel10k.git /home/coder/.oh-my-zsh/custom/themes/powerlevel10k \
-    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/coder/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
-    && git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/coder/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
-    && chown -R coder:coder /home/coder/.oh-my-zsh
+RUN su - dev -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' \
+    && git clone --depth 1 https://github.com/romkatv/powerlevel10k.git /home/dev/.oh-my-zsh/custom/themes/powerlevel10k \
+    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/dev/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
+    && git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/dev/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
+    && chown -R dev:dev /home/dev/.oh-my-zsh
 
-COPY <<'ZSHRC' /home/coder/.zshrc
+COPY <<'ZSHRC' /home/dev/.zshrc
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
@@ -174,10 +174,10 @@ echo "🚀 ACFS Railway — Agentic Coding Flywheel"
 echo "   claude | codex | gemini | opencode — ready to code"
 echo ""
 ZSHRC
-RUN chown coder:coder /home/coder/.zshrc
+RUN chown dev:dev /home/dev/.zshrc
 
 # Save skeleton home so we can seed the volume on first boot
-RUN cp -a /home/coder /etc/skel-coder
+RUN cp -a /home/dev /etc/skel-dev
 
 # ============================================================
 # Entrypoint: set up user/hostname from env vars, then start ttyd
@@ -186,18 +186,18 @@ COPY <<'ENTRYPOINT' /usr/local/bin/entrypoint.sh
 #!/bin/bash
 set -e
 
-TARGET_USER="${ACFS_USER:-coder}"
+TARGET_USER="${ACFS_USER:-dev}"
 TARGET_HOSTNAME="${ACFS_HOSTNAME:-acfs}"
 
 # Rename hostname
 echo "$TARGET_HOSTNAME" > /etc/hostname
 hostname "$TARGET_HOSTNAME" 2>/dev/null || true
 
-# If user wants a different username than "coder", rename it
-if [ "$TARGET_USER" != "coder" ] && id coder &>/dev/null; then
-    usermod -l "$TARGET_USER" -d "/home/$TARGET_USER" -m coder 2>/dev/null || true
-    groupmod -n "$TARGET_USER" coder 2>/dev/null || true
-    sed -i "s/^coder /$TARGET_USER /" /etc/sudoers.d/coder 2>/dev/null || true
+# If user wants a different username than "dev", rename it
+if [ "$TARGET_USER" != "dev" ] && id dev &>/dev/null; then
+    usermod -l "$TARGET_USER" -d "/home/$TARGET_USER" -m dev 2>/dev/null || true
+    groupmod -n "$TARGET_USER" dev 2>/dev/null || true
+    sed -i "s/^dev /$TARGET_USER /" /etc/sudoers.d/dev 2>/dev/null || true
 fi
 
 TARGET_HOME="/home/$TARGET_USER"
@@ -205,7 +205,7 @@ TARGET_HOME="/home/$TARGET_USER"
 # Seed home directory from skeleton if volume is empty (first boot)
 if [ ! -f "$TARGET_HOME/.zshrc" ]; then
     echo "First boot: seeding home directory from skeleton..."
-    cp -a /etc/skel-coder/. "$TARGET_HOME/" 2>/dev/null || true
+    cp -a /etc/skel-dev/. "$TARGET_HOME/" 2>/dev/null || true
 fi
 
 # SSH key setup (from env vars)
