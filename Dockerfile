@@ -335,7 +335,13 @@ RUN (git clone --depth 1 https://github.com/Dicklesworthstone/source_to_prompt_t
 RUN rm -rf /opt/gopath/pkg /tmp/*
 
 # ============================================================
-# Phase 10: ttyd (web terminal) — prebuilt binary
+# Phase 10: Copy ACFS repo config files (for agent workflow setup)
+# ============================================================
+COPY acfs /opt/acfs-repo/acfs
+COPY .claude /opt/acfs-repo/.claude
+
+# ============================================================
+# Phase 10b: ttyd (web terminal) — prebuilt binary
 # ============================================================
 RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" -o /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd
@@ -356,28 +362,33 @@ RUN su - dev -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/o
     && git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/dev/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
     && chown -R dev:dev /home/dev/.oh-my-zsh
 
-COPY <<'ZSHRC' /home/dev/.zshrc
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"
-POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting fzf)
-source $ZSH/oh-my-zsh.sh
-export PATH="/usr/local/bin:/opt/bun/bin:/opt/cargo/bin:/usr/local/go/bin:$HOME/.local/bin:$PATH"
-export RUSTUP_HOME="/opt/rustup"
-export CARGO_HOME="/opt/cargo"
-export EDITOR=vim
-alias ll="eza -la --icons --group-directories-first"
-alias la="eza -la --icons"
-alias lt="eza --tree --level=2 --icons"
-alias cat="bat --paging=never"
-alias lg="lazygit"
-eval "$(zoxide init zsh)"
-eval "$(atuin init zsh 2>/dev/null)" || true
-echo "🚀 ACFS Railway — Agentic Coding Flywheel (comprehensive edition)"
-echo "   claude | codex | gemini | opencode + 40 tools"
-echo ""
-ZSHRC
-RUN chown dev:dev /home/dev/.zshrc
+# (zshrc is set up in Phase 12 from ACFS config)
+
+# ============================================================
+# Phase 12: Multi-agent workflow config
+# ============================================================
+
+# AGENTS.md — the master instruction file for all AI agents
+RUN cp /opt/acfs-repo/acfs/AGENTS.md /home/dev/AGENTS.md 2>/dev/null || true
+
+# Claude Code hooks (UBS on-file-write)
+RUN mkdir -p /home/dev/.claude/hooks \
+    && cp -r /opt/acfs-repo/.claude/hooks/* /home/dev/.claude/hooks/ 2>/dev/null || true
+
+# Claude Code settings
+RUN mkdir -p /home/dev/.claude \
+    && cp /opt/acfs-repo/acfs/claude/settings.json /home/dev/.claude/settings.json 2>/dev/null || true
+
+# tmux config optimized for NTM agent workflows
+RUN cp /opt/acfs-repo/acfs/tmux/tmux.conf /home/dev/.tmux.conf 2>/dev/null || true
+
+# Use ACFS's full zshrc (comprehensive aliases, tool integrations)
+RUN cp /opt/acfs-repo/acfs/zsh/acfs.zshrc /home/dev/.zshrc 2>/dev/null || true
+# Copy p10k config if available
+RUN cp /opt/acfs-repo/acfs/zsh/p10k.zsh /home/dev/.p10k.zsh 2>/dev/null || true
+
+# Ensure dev owns everything
+RUN chown -R dev:dev /home/dev
 
 # Save skeleton home so we can seed the volume on first boot
 RUN cp -a /home/dev /etc/skel-dev
@@ -452,15 +463,24 @@ if [ -n "${GIT_USER_EMAIL:-}" ]; then
     su - "$TARGET_USER" -c "git config --global user.email '${GIT_USER_EMAIL}'"
 fi
 
+# Seed AGENTS.md into workspace if not present (multi-agent instructions)
+if [ ! -f /data/projects/AGENTS.md ]; then
+    cp /opt/acfs-repo/acfs/AGENTS.md /data/projects/AGENTS.md 2>/dev/null || true
+fi
+
 # Ensure ownership
 chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/null || true
 
-# Start ttyd as the target user
+# Start a persistent tmux session if not already running (survives browser disconnects)
+su - "$TARGET_USER" -c "tmux has-session -t main 2>/dev/null || tmux new-session -d -s main -c /data/projects" || true
+
+# Start ttyd — attach to tmux so sessions persist across browser reconnects
 exec ttyd -W -p "${PORT:-7681}" \
     -c "${TTYD_USER:-admin}:${TTYD_PASS:-changeme}" \
     -t titleFixed="${TARGET_HOSTNAME} terminal" \
-    su - "$TARGET_USER"
+    su - "$TARGET_USER" -c "tmux attach-session -t main || tmux new-session -s main -c /data/projects"
 ENTRYPOINT
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
