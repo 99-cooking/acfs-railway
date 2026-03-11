@@ -164,6 +164,9 @@ echo ""
 ZSHRC
 RUN chown coder:coder /home/coder/.zshrc
 
+# Save skeleton home so we can seed the volume on first boot
+RUN cp -a /home/coder /etc/skel-coder
+
 # ============================================================
 # Entrypoint: set up user/hostname from env vars, then start ttyd
 # ============================================================
@@ -185,10 +188,17 @@ if [ "$TARGET_USER" != "coder" ] && id coder &>/dev/null; then
     sed -i "s/^coder /$TARGET_USER /" /etc/sudoers.d/coder 2>/dev/null || true
 fi
 
-TARGET_HOME=$(eval echo "~$TARGET_USER")
+TARGET_HOME="/home/$TARGET_USER"
 
-# Ensure workspace ownership
-chown "$TARGET_USER:$TARGET_USER" /data/projects 2>/dev/null || true
+# Seed home directory from skeleton if volume is empty (first boot)
+if [ ! -f "$TARGET_HOME/.zshrc" ]; then
+    echo "First boot: seeding home directory from skeleton..."
+    cp -a /etc/skel-coder/. "$TARGET_HOME/" 2>/dev/null || true
+fi
+
+# Ensure ownership
+chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || true
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
 
 # Start ttyd as the target user
 exec ttyd -W -p "${PORT:-7681}" \
