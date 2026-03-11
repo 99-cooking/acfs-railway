@@ -343,7 +343,11 @@ COPY acfs /opt/acfs-repo/acfs
 COPY .claude /opt/acfs-repo/.claude
 
 # ============================================================
-# Phase 10b: ttyd (web terminal) — prebuilt binary
+# Phase 10b: code-server (VS Code in browser)
+RUN curl -fsSL https://code-server.dev/install.sh | sh 2>/dev/null \
+    || echo "code-server: install skipped"
+
+# Phase 10c: ttyd (web terminal) — prebuilt binary
 # ============================================================
 RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" -o /usr/local/bin/ttyd \
     && chmod +x /usr/local/bin/ttyd
@@ -405,24 +409,36 @@ set -e
 TARGET_USER="${ACFS_USER:-dev}"
 TARGET_HOSTNAME="${ACFS_HOSTNAME:-acfs}"
 
+echo "=== ACFS Entrypoint ==="
+
 # Rename hostname
 echo "$TARGET_HOSTNAME" > /etc/hostname
 hostname "$TARGET_HOSTNAME" 2>/dev/null || true
 
 # If user wants a different username than "dev", rename it
 if [ "$TARGET_USER" != "dev" ] && id dev &>/dev/null; then
-    usermod -l "$TARGET_USER" -d "/home/$TARGET_USER" -m dev 2>/dev/null || true
+    usermod -l "$TARGET_USER" -d "/data/home/$TARGET_USER" -m dev 2>/dev/null || true
     groupmod -n "$TARGET_USER" dev 2>/dev/null || true
     sed -i "s/^dev /$TARGET_USER /" /etc/sudoers.d/dev 2>/dev/null || true
+else
+    # Update home directory to /data/home/dev (on the volume)
+    usermod -d "/data/home/$TARGET_USER" "$TARGET_USER" 2>/dev/null || true
 fi
 
-TARGET_HOME="/home/$TARGET_USER"
+TARGET_HOME="/data/home/$TARGET_USER"
+
+# Create persistent directories on the volume
+mkdir -p "$TARGET_HOME" /data/projects
 
 # Seed home directory from skeleton if volume is empty (first boot)
 if [ ! -f "$TARGET_HOME/.zshrc" ]; then
     echo "First boot: seeding home directory from skeleton..."
     cp -a /etc/skel-dev/. "$TARGET_HOME/" 2>/dev/null || true
 fi
+
+# Symlink /home/<user> -> /data/home/<user> for compatibility
+mkdir -p /home
+ln -sfn "$TARGET_HOME" "/home/$TARGET_USER" 2>/dev/null || true
 
 # SSH key setup (from env vars)
 SSH_DIR="$TARGET_HOME/.ssh"
@@ -465,6 +481,23 @@ if [ -n "${GIT_USER_EMAIL:-}" ]; then
     su - "$TARGET_USER" -c "git config --global user.email '${GIT_USER_EMAIL}'"
 fi
 
+# Dotfiles repo support (first boot only)
+if [ -n "${DOTFILES_REPO:-}" ] && [ ! -f "$TARGET_HOME/.dotfiles-installed" ]; then
+    echo "Installing dotfiles from $DOTFILES_REPO..."
+    su - "$TARGET_USER" -c "
+        git clone '${DOTFILES_REPO}' '$TARGET_HOME/.dotfiles' 2>/dev/null || true
+        if [ -f '$TARGET_HOME/.dotfiles/install.sh' ]; then
+            cd '$TARGET_HOME/.dotfiles' && bash install.sh 2>/dev/null || true
+        elif [ -f '$TARGET_HOME/.dotfiles/setup.sh' ]; then
+            cd '$TARGET_HOME/.dotfiles' && bash setup.sh 2>/dev/null || true
+        elif [ -f '$TARGET_HOME/.dotfiles/Makefile' ]; then
+            cd '$TARGET_HOME/.dotfiles' && make 2>/dev/null || true
+        fi
+    " || true
+    touch "$TARGET_HOME/.dotfiles-installed"
+    echo "Dotfiles installed."
+fi
+
 # Seed AGENTS.md into workspace if not present (multi-agent instructions)
 if [ ! -f /data/projects/AGENTS.md ]; then
     cp /opt/acfs-repo/acfs/AGENTS.md /data/projects/AGENTS.md 2>/dev/null || true
@@ -474,6 +507,16 @@ fi
 chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/null || true
+
+# Start code-server in background (accessible via session manager dashboard)
+if command -v code-server &>/dev/null; then
+    su - "$TARGET_USER" -c "code-server \
+        --bind-addr 127.0.0.1:18080 \
+        --auth none \
+        --disable-telemetry \
+        /data/projects" &
+    echo "code-server started on internal port 18080"
+fi
 
 # Start the session manager (dashboard + multi-session ttyd routing)
 exec node /opt/acfs-session-manager/server.js

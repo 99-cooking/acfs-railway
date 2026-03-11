@@ -17,6 +17,7 @@ const TTYD_PASS = process.env.TTYD_PASS || "changeme";
 const ACFS_USER = process.env.ACFS_USER || "dev";
 const ACFS_HOSTNAME = process.env.ACFS_HOSTNAME || "acfs";
 const BASE_TTYD_PORT = 17681; // internal ports for ttyd instances
+const CODE_SERVER_PORT = 18080; // internal code-server port
 
 // Track running ttyd instances: { sessionName: { port, process, pid } }
 const instances = new Map();
@@ -196,6 +197,8 @@ function dashboardHTML(sessions) {
   .btn-kill:hover { background: #f8514922; }
   .btn-refresh { background: #21262d; color: #c9d1d9; }
   .btn-refresh:hover { background: #30363d; }
+  .btn-code { background: #0078d4; color: #fff; border-color: #0078d4; }
+  .btn-code:hover { background: #1a8cff; }
   .sessions { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem; }
   .session {
     background: #161b22; border: 1px solid #30363d; border-radius: 8px;
@@ -225,6 +228,7 @@ function dashboardHTML(sessions) {
   <div class="toolbar">
     <input type="text" id="newSession" placeholder="New session name..." onkeydown="if(event.key==='Enter')createSession()">
     <button class="btn btn-create" onclick="createSession()">+ New Session</button>
+    <a href="/code/" target="_blank" class="btn btn-code">⟨/⟩ VS Code</a>
     <button class="btn btn-refresh" onclick="location.reload()">↻ Refresh</button>
   </div>
 
@@ -323,6 +327,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Proxy to code-server
+  if (url.pathname.startsWith("/code")) {
+    proxyRequest(req, res, CODE_SERVER_PORT);
+    return;
+  }
+
   // Proxy to ttyd session
   const sessionMatch = url.pathname.match(/^\/s\/([a-zA-Z0-9_-]+)(\/.*)?$/);
   if (sessionMatch) {
@@ -340,9 +350,37 @@ const server = http.createServer((req, res) => {
   res.end("Not found");
 });
 
-// Handle WebSocket upgrades (critical for ttyd)
+// Handle WebSocket upgrades (critical for ttyd and code-server)
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
+
+  // code-server WebSocket
+  if (url.pathname.startsWith("/code")) {
+    const port = CODE_SERVER_PORT;
+    const options = {
+      hostname: "127.0.0.1",
+      port,
+      path: req.url,
+      method: "GET",
+      headers: { ...req.headers, host: `127.0.0.1:${port}` },
+    };
+    const proxy = http.request(options);
+    proxy.on("upgrade", (proxyRes, proxySocket, proxyHead) => {
+      socket.write(
+        `HTTP/1.1 101 Switching Protocols\r\n` +
+          Object.entries(proxyRes.headers)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join("\r\n") +
+          "\r\n\r\n"
+      );
+      proxySocket.pipe(socket);
+      socket.pipe(proxySocket);
+    });
+    proxy.on("error", () => socket.destroy());
+    proxy.end();
+    return;
+  }
+
   const sessionMatch = url.pathname.match(/^\/s\/([a-zA-Z0-9_-]+)(\/.*)?$/);
 
   if (!sessionMatch) {
