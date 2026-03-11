@@ -12,6 +12,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     SHELL=/bin/zsh
 
+# Configurable user and hostname (override via Railway env vars)
+ENV ACFS_USER=coder \
+    ACFS_HOSTNAME=acfs
+
 # ============================================================
 # Phase 1: Base system packages
 # ============================================================
@@ -27,10 +31,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Phase 2: Go (needed for Dicklesworthstone stack)
 # ============================================================
 RUN curl -fsSL "https://go.dev/dl/go1.23.6.linux-amd64.tar.gz" | tar -C /usr/local -xz
-ENV PATH="/usr/local/go/bin:/root/go/bin:$PATH"
+ENV PATH="/usr/local/go/bin:$PATH"
 
 # ============================================================
-# Phase 3: Modern CLI tools
+# Phase 3: Modern CLI tools (installed globally)
 # ============================================================
 RUN curl -fsSL "https://github.com/sharkdp/bat/releases/download/v0.24.0/bat-v0.24.0-x86_64-unknown-linux-gnu.tar.gz" \
     | tar -xz -C /tmp && mv /tmp/bat-v0.24.0-x86_64-unknown-linux-gnu/bat /usr/local/bin/ && rm -rf /tmp/bat-*
@@ -57,55 +61,52 @@ RUN curl -fsSL "https://github.com/jesseduffield/lazygit/releases/download/v0.44
     | tar -xz -C /usr/local/bin/ lazygit
 
 # ============================================================
-# Phase 4: Language runtimes
+# Phase 4: Language runtimes (install globally, then copy to user)
 # ============================================================
 
-# Bun
+# Bun (global install)
+ENV BUN_INSTALL="/opt/bun"
 RUN curl -fsSL https://bun.sh/install | bash
-ENV BUN_INSTALL="/root/.bun"
 ENV PATH="$BUN_INSTALL/bin:$PATH"
 
 # uv (Python)
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | CARGO_HOME=/opt/uv sh
+RUN mv /root/.local/bin/uv /usr/local/bin/ 2>/dev/null || mv /opt/uv/bin/uv /usr/local/bin/ 2>/dev/null || true
+RUN mv /root/.local/bin/uvx /usr/local/bin/ 2>/dev/null || true
 
-# Rust
+# Rust (install to shared location)
+ENV RUSTUP_HOME="/opt/rustup" \
+    CARGO_HOME="/opt/cargo"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-ENV PATH="/root/.cargo/bin:$PATH"
+ENV PATH="/opt/cargo/bin:$PATH"
 
-# Node.js LTS (via n)
+# Node.js LTS (via n — installs to /usr/local)
 RUN curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n -o /usr/local/bin/n \
     && chmod +x /usr/local/bin/n \
     && n lts
 
 # ============================================================
-# Phase 5: AI Coding Agents
+# Phase 5: AI Coding Agents (global npm)
 # ============================================================
-
-# Claude Code
 RUN npm install -g @anthropic-ai/claude-code
-
-# Codex CLI (OpenAI)
 RUN npm install -g @openai/codex 2>/dev/null || echo "codex: not yet available via npm"
-
-# Gemini CLI (Google)
 RUN npm install -g @google/gemini-cli 2>/dev/null || echo "gemini: not yet available via npm"
 
 # ============================================================
 # Phase 6: Dicklesworthstone Stack (Go tools)
 # ============================================================
-
-# NTM — Named Tmux Manager (agent cockpit)
+ENV GOPATH="/opt/gopath"
 RUN go install github.com/Dicklesworthstone/ntm@latest 2>/dev/null || \
     (git clone --depth 1 https://github.com/Dicklesworthstone/ntm.git /tmp/ntm \
     && cd /tmp/ntm && go build -o /usr/local/bin/ntm . && cd / && rm -rf /tmp/ntm) \
     || echo "ntm: build skipped"
+RUN cp /opt/gopath/bin/* /usr/local/bin/ 2>/dev/null || true
 
-# SLB — Simultaneous Launch Button (two-person rule)
 RUN go install github.com/Dicklesworthstone/simultaneous_launch_button@latest 2>/dev/null || \
     (git clone --depth 1 https://github.com/Dicklesworthstone/simultaneous_launch_button.git /tmp/slb \
     && cd /tmp/slb && go build -o /usr/local/bin/slb . && cd / && rm -rf /tmp/slb) \
     || echo "slb: build skipped"
+RUN cp /opt/gopath/bin/* /usr/local/bin/ 2>/dev/null || true
 
 # Beads (Rust — issue tracker)
 RUN git clone --depth 1 https://github.com/Dicklesworthstone/beads_rust.git /tmp/beads \
@@ -115,23 +116,41 @@ RUN git clone --depth 1 https://github.com/Dicklesworthstone/beads_rust.git /tmp
     || echo "beads: build skipped"
 
 # Clean build caches
-RUN rm -rf /root/.cargo/registry /root/.cargo/git /root/go/pkg /tmp/*
+RUN rm -rf /opt/cargo/registry /opt/cargo/git /opt/gopath/pkg /tmp/*
 
 # ============================================================
-# Phase 7: Oh My Zsh + Powerlevel10k
+# Phase 7: ttyd (web terminal) — prebuilt binary
 # ============================================================
-RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
-    && git clone --depth 1 https://github.com/romkatv/powerlevel10k.git /root/.oh-my-zsh/custom/themes/powerlevel10k \
-    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /root/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
-    && git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /root/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" -o /usr/local/bin/ttyd \
+    && chmod +x /usr/local/bin/ttyd
 
-COPY <<'ZSHRC' /root/.zshrc
-export ZSH="/root/.oh-my-zsh"
+# ============================================================
+# Phase 8: Create default non-root user
+# We create a "coder" user at build time. The entrypoint
+# script handles renaming user/hostname from env vars at runtime.
+# ============================================================
+RUN useradd -m -s /bin/zsh -G sudo coder \
+    && echo 'coder ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/coder \
+    && chmod 0440 /etc/sudoers.d/coder \
+    && mkdir -p /data/projects \
+    && chown coder:coder /data/projects
+
+# Install Oh My Zsh + plugins for the default user
+RUN su - coder -c 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended' \
+    && git clone --depth 1 https://github.com/romkatv/powerlevel10k.git /home/coder/.oh-my-zsh/custom/themes/powerlevel10k \
+    && git clone --depth 1 https://github.com/zsh-users/zsh-autosuggestions /home/coder/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
+    && git clone --depth 1 https://github.com/zsh-users/zsh-syntax-highlighting /home/coder/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
+    && chown -R coder:coder /home/coder/.oh-my-zsh
+
+COPY <<'ZSHRC' /home/coder/.zshrc
+export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true
 plugins=(git zsh-autosuggestions zsh-syntax-highlighting fzf)
 source $ZSH/oh-my-zsh.sh
-export PATH="/root/.local/bin:/root/.bun/bin:/root/.cargo/bin:/usr/local/go/bin:/root/go/bin:$PATH"
+export PATH="/usr/local/bin:/opt/bun/bin:/opt/cargo/bin:/usr/local/go/bin:$HOME/.local/bin:$PATH"
+export RUSTUP_HOME="/opt/rustup"
+export CARGO_HOME="/opt/cargo"
 export EDITOR=vim
 alias ll="eza -la --icons --group-directories-first"
 alias la="eza -la --icons"
@@ -143,19 +162,46 @@ echo "🚀 ACFS Railway — Agentic Coding Flywheel"
 echo "   claude | codex | gemini — ready to code"
 echo ""
 ZSHRC
+RUN chown coder:coder /home/coder/.zshrc
 
 # ============================================================
-# Phase 8: ttyd (web terminal) — prebuilt binary
+# Entrypoint: set up user/hostname from env vars, then start ttyd
 # ============================================================
-RUN curl -fsSL "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" -o /usr/local/bin/ttyd \
-    && chmod +x /usr/local/bin/ttyd
+COPY <<'ENTRYPOINT' /usr/local/bin/entrypoint.sh
+#!/bin/bash
+set -e
+
+TARGET_USER="${ACFS_USER:-coder}"
+TARGET_HOSTNAME="${ACFS_HOSTNAME:-acfs}"
+
+# Rename hostname
+echo "$TARGET_HOSTNAME" > /etc/hostname
+hostname "$TARGET_HOSTNAME" 2>/dev/null || true
+
+# If user wants a different username than "coder", rename it
+if [ "$TARGET_USER" != "coder" ] && id coder &>/dev/null; then
+    usermod -l "$TARGET_USER" -d "/home/$TARGET_USER" -m coder 2>/dev/null || true
+    groupmod -n "$TARGET_USER" coder 2>/dev/null || true
+    sed -i "s/^coder /$TARGET_USER /" /etc/sudoers.d/coder 2>/dev/null || true
+fi
+
+TARGET_HOME=$(eval echo "~$TARGET_USER")
+
+# Ensure workspace ownership
+chown "$TARGET_USER:$TARGET_USER" /data/projects 2>/dev/null || true
+
+# Start ttyd as the target user
+exec ttyd -W -p "${PORT:-7681}" \
+    -c "${TTYD_USER:-admin}:${TTYD_PASS:-changeme}" \
+    -t titleFixed="${TARGET_HOSTNAME} terminal" \
+    su - "$TARGET_USER"
+ENTRYPOINT
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Final cleanup
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /data/projects
-RUN chsh -s /bin/zsh root
-
 EXPOSE 7681
 
-CMD ["sh", "-c", "ttyd -W -p ${PORT:-7681} -c ${TTYD_USER:-admin}:${TTYD_PASS:-changeme} -t titleFixed='ACFS Terminal' /bin/zsh"]
+CMD ["/usr/local/bin/entrypoint.sh"]
