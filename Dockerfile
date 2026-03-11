@@ -158,4 +158,4 @@ RUN chsh -s /bin/zsh root
 
 EXPOSE 7681
 
-CMD ["sh", "-c", "ttyd -p ${PORT:-7681} -c ${TTYD_USER:-admin}:${TTYD_PASS:-changeme} -t titleFixed='ACFS Terminal' /bin/zsh"]
+CMD ["sh", "-c", "ttyd -W -p ${PORT:-7681} -c ${TTYD_USER:-admin}:${TTYD_PASS:-changeme} -t titleFixed='ACFS Terminal' /bin/zsh"]
