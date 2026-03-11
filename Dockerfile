@@ -104,9 +104,10 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN npm install -g @openai/codex 2>/dev/null || echo "codex: not yet available via npm"
 RUN npm install -g @google/gemini-cli 2>/dev/null || echo "gemini: not yet available via npm"
 
-# OpenCode (terminal AI agent)
-RUN curl -fsSL "https://github.com/opencode-ai/opencode/releases/latest/download/opencode-linux-x86_64.tar.gz" \
-    | tar -xz -C /usr/local/bin/ opencode
+# OpenCode (terminal AI agent) — anomalyco/opencode (the real one)
+RUN curl -fsSL "https://github.com/anomalyco/opencode/releases/latest/download/opencode-linux-x64.tar.gz" \
+    | tar -xz -C /usr/local/bin/ \
+    || echo "opencode: install skipped"
 
 # oh-my-openagent (OpenCode enhancer — multi-model agent harness)
 RUN npm install -g oh-my-opencode 2>/dev/null || \
