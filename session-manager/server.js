@@ -327,7 +327,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Proxy to code-server
+  // Proxy to code-server (code-server handles /code base path itself)
   if (url.pathname.startsWith("/code")) {
     proxyRequest(req, res, CODE_SERVER_PORT);
     return;
