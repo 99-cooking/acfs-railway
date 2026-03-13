@@ -465,17 +465,17 @@ if [[ -f "$HOME/.acfs/completions/_acfs" ]]; then
 fi
 
 # --- Agent aliases (dangerously enabled by design) ---
-alias cc='NODE_OPTIONS="--max-old-space-size=32768" ~/.local/bin/claude --dangerously-skip-permissions'
+alias cc='NODE_OPTIONS="--max-old-space-size=32768" claude --dangerously-skip-permissions'
 alias cod='codex --dangerously-bypass-approvals-and-sandbox'
 
-# gmi: update gemini-cli via bun, apply patches, then launch (hardcoded bun path to avoid npm hijacking)
+# gmi: update gemini-cli, apply patches, then launch
 gmi() {
   echo "▶ Updating gemini-cli to latest..."
-  "$HOME/.bun/bin/bun" install -g --trust @google/gemini-cli@latest 2>&1 | tail -1
+  npm install -g @google/gemini-cli@latest 2>&1 | tail -1
   echo "▶ Applying patches..."
   curl -fsSL https://raw.githubusercontent.com/Dicklesworthstone/misc_coding_agent_tips_and_scripts/main/fix-gemini-cli-ebadf-crash.sh | bash
   echo "▶ Launching gemini..."
-  "$HOME/.bun/bin/gemini" --yolo "$@"
+  gemini --yolo "$@"
 }
 
 # bun project helpers (common)
@@ -494,8 +494,8 @@ if whence -p br &>/dev/null; then
   alias bd='br'
 fi
 
-# MCP Agent Mail helper (installer usually adds `am`, but keep a fallback)
-alias am='cd ~/mcp_agent_mail 2>/dev/null && scripts/run_server_with_token.sh || echo "mcp_agent_mail not found in ~/mcp_agent_mail"'
+# MCP Agent Mail CLI (installed at /opt/acfs/mcp-agent-mail, symlinked to /usr/local/bin/am)
+# No alias needed — the `am` binary is in PATH via the symlink created in the Dockerfile
 
 # --- Keybindings (quality of life) ---
 # Ctrl+Arrow for word movement

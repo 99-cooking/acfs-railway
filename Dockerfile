@@ -510,8 +510,9 @@ if [ ! -f "$TARGET_HOME/.config/opencode/opencode.json" ] || ! grep -q "oh-my-op
         --copilot=${OMO_COPILOT:-no}" 2>/dev/null || echo "oh-my-openagent: patch skipped"
 fi
 
-# Register DCG as Claude Code hook (blocks destructive git/fs commands)
-su - "$TARGET_USER" -c "dcg install" 2>/dev/null || echo "dcg: install skipped"
+# Create persistent mailbox directory for MCP Agent Mail
+mkdir -p /data/mcp-agent-mail/mailbox
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/mcp-agent-mail /data/mcp-agent-mail/mailbox 2>/dev/null || true
 
 # Seed AGENTS.md into workspace if not present (multi-agent instructions)
 if [ ! -f /data/projects/AGENTS.md ]; then
