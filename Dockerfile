@@ -207,13 +207,6 @@ RUN (git clone --depth 1 https://github.com/Dicklesworthstone/dcg.git /tmp/dcg \
     && cd / && rm -rf /tmp/dcg) \
     || echo "dcg: build skipped"
 
-# RCH — Remote Compilation Helper
-RUN (git clone --depth 1 https://github.com/Dicklesworthstone/rch.git /tmp/rch \
-    && cd /tmp/rch && cargo build --release \
-    && find target/release -maxdepth 1 -type f -executable ! -name "*.d" -exec mv {} /usr/local/bin/ \; \
-    && cd / && rm -rf /tmp/rch) \
-    || echo "rch: build skipped"
-
 # XF — ultra-fast Twitter archive search (Tantivy)
 RUN (git clone --depth 1 https://github.com/Dicklesworthstone/xf.git /tmp/xf \
     && cd /tmp/xf && cargo build --release \
@@ -385,6 +378,14 @@ RUN mkdir -p /home/dev/.claude/hooks \
 RUN mkdir -p /home/dev/.claude \
     && cp /opt/acfs-repo/acfs/claude/settings.json /home/dev/.claude/settings.json 2>/dev/null || true
 
+# Codex CLI global AGENTS.md (same file — Codex reads AGENTS.md natively)
+RUN mkdir -p /home/dev/.codex \
+    && cp /opt/acfs-repo/acfs/AGENTS.md /home/dev/.codex/AGENTS.md 2>/dev/null || true
+
+# Gemini CLI global instructions
+RUN mkdir -p /home/dev/.gemini \
+    && cp /opt/acfs-repo/acfs/gemini/GEMINI.md /home/dev/.gemini/GEMINI.md 2>/dev/null || true
+
 # tmux config optimized for NTM agent workflows
 RUN cp /opt/acfs-repo/acfs/tmux/tmux.conf /home/dev/.tmux.conf 2>/dev/null || true
 
@@ -509,15 +510,24 @@ if [ ! -f "$TARGET_HOME/.config/opencode/opencode.json" ] || ! grep -q "oh-my-op
         --copilot=${OMO_COPILOT:-no}" 2>/dev/null || echo "oh-my-openagent: patch skipped"
 fi
 
+# Register DCG as Claude Code hook (blocks destructive git/fs commands)
+su - "$TARGET_USER" -c "dcg install" 2>/dev/null || echo "dcg: install skipped"
+
 # Seed AGENTS.md into workspace if not present (multi-agent instructions)
 if [ ! -f /data/projects/AGENTS.md ]; then
     cp /opt/acfs-repo/acfs/AGENTS.md /data/projects/AGENTS.md 2>/dev/null || true
+fi
+
+# Seed Gemini instructions into workspace
+if [ ! -f /data/projects/GEMINI.md ]; then
+    cp /opt/acfs-repo/acfs/gemini/GEMINI.md /data/projects/GEMINI.md 2>/dev/null || true
 fi
 
 # Ensure ownership
 chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/null || true
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/GEMINI.md 2>/dev/null || true
 
 # Start code-server in background (accessible via session manager dashboard)
 if command -v code-server &>/dev/null; then

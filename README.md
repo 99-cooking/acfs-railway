@@ -73,7 +73,8 @@ acfs-railway/
 │   └── server.js              # Dashboard + ttyd session routing
 ├── acfs/                      # Configs copied INTO the Docker image
 │   ├── AGENTS.md              # Agent instructions for the container
-│   ├── claude/settings.json   # Claude Code settings
+│   ├── claude/settings.json   # Claude Code settings (MCP Agent Mail wired)
+│   ├── gemini/GEMINI.md       # Gemini CLI instructions
 │   ├── zsh/acfs.zshrc         # Shell config (aliases, integrations)
 │   ├── zsh/p10k.zsh           # Powerlevel10k theme
 │   ├── tmux/tmux.conf         # Tmux config (Ctrl-a prefix, vim keys)
@@ -110,7 +111,7 @@ The Dockerfile installs tools in order:
 5. AI coding agents (Claude, Codex, Gemini, OpenCode)
 6. Cloud CLIs (Railway, Wrangler, Supabase, Vercel, Vault)
 7. Dicklesworthstone stack — Go tools (NTM, SLB, BV, CAAM)
-8. Dicklesworthstone stack — Rust tools (Beads, CASS, DCG, RCH, etc.)
+8. Dicklesworthstone stack — Rust tools (Beads, CASS, DCG, etc.)
 9. Dicklesworthstone stack — Script/TS/Python tools (Agent Mail, UBS, CM, RU, etc.)
 10. Shell setup (Oh My Zsh, Powerlevel10k, plugins)
 11. Config deployment (zshrc, tmux.conf, AGENTS.md, Claude hooks)
