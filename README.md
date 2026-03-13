@@ -42,6 +42,13 @@ A Docker image that packages **50+ developer tools and 3 AI coding agents** into
 | `SSH_PRIVATE_KEY` | No | SSH private key (for git over SSH) |
 | `SSH_PUBLIC_KEY` | No | SSH public key |
 | `DOTFILES_REPO` | No | Git URL of dotfiles repo (cloned on first boot) |
+| `OMO_CLAUDE` | No | oh-my-opencode: Claude subscription (`yes`/`no`/`max20`, default: `yes`) |
+| `OMO_OPENAI` | No | oh-my-opencode: OpenAI/ChatGPT subscription (`yes`/`no`, default: `no`) |
+| `OMO_GEMINI` | No | oh-my-opencode: Gemini integration (`yes`/`no`, default: `no`) |
+| `OMO_COPILOT` | No | oh-my-opencode: GitHub Copilot subscription (`yes`/`no`, default: `no`) |
+| `OMO_OPENCODE_ZEN` | No | oh-my-opencode: OpenCode Zen access (`yes`/`no`, default: `no`) |
+| `OMO_ZAI_CODING_PLAN` | No | oh-my-opencode: Z.ai Coding Plan (`yes`/`no`, default: `no`) |
+| `OMO_OPENCODE_GO` | No | oh-my-opencode: OpenCode Go subscription (`yes`/`no`, default: `no`) |
 
 ## How It Works
 
@@ -73,7 +80,8 @@ acfs-railway/
 │   └── server.js              # Dashboard + ttyd session routing
 ├── acfs/                      # Configs copied INTO the Docker image
 │   ├── AGENTS.md              # Agent instructions for the container
-│   ├── claude/settings.json   # Claude Code settings
+│   ├── claude/settings.json   # Claude Code settings (MCP Agent Mail wired)
+│   ├── gemini/GEMINI.md       # Gemini CLI instructions
 │   ├── zsh/acfs.zshrc         # Shell config (aliases, integrations)
 │   ├── zsh/p10k.zsh           # Powerlevel10k theme
 │   ├── tmux/tmux.conf         # Tmux config (Ctrl-a prefix, vim keys)
@@ -110,7 +118,7 @@ The Dockerfile installs tools in order:
 5. AI coding agents (Claude, Codex, Gemini, OpenCode)
 6. Cloud CLIs (Railway, Wrangler, Supabase, Vercel, Vault)
 7. Dicklesworthstone stack — Go tools (NTM, SLB, BV, CAAM)
-8. Dicklesworthstone stack — Rust tools (Beads, CASS, DCG, RCH, etc.)
+8. Dicklesworthstone stack — Rust tools (Beads, CASS, DCG, etc.)
 9. Dicklesworthstone stack — Script/TS/Python tools (Agent Mail, UBS, CM, RU, etc.)
 10. Shell setup (Oh My Zsh, Powerlevel10k, plugins)
 11. Config deployment (zshrc, tmux.conf, AGENTS.md, Claude hooks)

@@ -207,13 +207,6 @@ RUN (git clone --depth 1 https://github.com/Dicklesworthstone/dcg.git /tmp/dcg \
     && cd / && rm -rf /tmp/dcg) \
     || echo "dcg: build skipped"
 
-# RCH — Remote Compilation Helper
-RUN (git clone --depth 1 https://github.com/Dicklesworthstone/rch.git /tmp/rch \
-    && cd /tmp/rch && cargo build --release \
-    && find target/release -maxdepth 1 -type f -executable ! -name "*.d" -exec mv {} /usr/local/bin/ \; \
-    && cd / && rm -rf /tmp/rch) \
-    || echo "rch: build skipped"
-
 # XF — ultra-fast Twitter archive search (Tantivy)
 RUN (git clone --depth 1 https://github.com/Dicklesworthstone/xf.git /tmp/xf \
     && cd /tmp/xf && cargo build --release \
@@ -385,6 +378,14 @@ RUN mkdir -p /home/dev/.claude/hooks \
 RUN mkdir -p /home/dev/.claude \
     && cp /opt/acfs-repo/acfs/claude/settings.json /home/dev/.claude/settings.json 2>/dev/null || true
 
+# Codex CLI global AGENTS.md (same file — Codex reads AGENTS.md natively)
+RUN mkdir -p /home/dev/.codex \
+    && cp /opt/acfs-repo/acfs/AGENTS.md /home/dev/.codex/AGENTS.md 2>/dev/null || true
+
+# Gemini CLI global instructions
+RUN mkdir -p /home/dev/.gemini \
+    && cp /opt/acfs-repo/acfs/gemini/GEMINI.md /home/dev/.gemini/GEMINI.md 2>/dev/null || true
+
 # tmux config optimized for NTM agent workflows
 RUN cp /opt/acfs-repo/acfs/tmux/tmux.conf /home/dev/.tmux.conf 2>/dev/null || true
 
@@ -498,26 +499,39 @@ if [ -n "${DOTFILES_REPO:-}" ] && [ ! -f "$TARGET_HOME/.dotfiles-installed" ]; t
     echo "Dotfiles installed."
 fi
 
-# Apply oh-my-openagent patch to OpenCode on first boot
+# Apply oh-my-opencode plugin to OpenCode on first boot
+# Flags are configurable via OMO_* env vars (see README)
 if [ ! -f "$TARGET_HOME/.config/opencode/opencode.json" ] || ! grep -q "oh-my-opencode" "$TARGET_HOME/.config/opencode/opencode.json" 2>/dev/null; then
-    echo "Patching OpenCode with oh-my-openagent..."
-    # Default install: Claude=yes (most common), others configurable via env
+    echo "Configuring OpenCode with oh-my-opencode plugin..."
     su - "$TARGET_USER" -c "bunx oh-my-opencode install --no-tui \
         --claude=${OMO_CLAUDE:-yes} \
         --openai=${OMO_OPENAI:-no} \
         --gemini=${OMO_GEMINI:-no} \
-        --copilot=${OMO_COPILOT:-no}" 2>/dev/null || echo "oh-my-openagent: patch skipped"
+        --copilot=${OMO_COPILOT:-no} \
+        --opencode-zen=${OMO_OPENCODE_ZEN:-no} \
+        --zai-coding-plan=${OMO_ZAI_CODING_PLAN:-no} \
+        --opencode-go=${OMO_OPENCODE_GO:-no}" 2>/dev/null || echo "oh-my-opencode: install skipped"
 fi
+
+# Create persistent mailbox directory for MCP Agent Mail
+mkdir -p /data/mcp-agent-mail/mailbox
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/mcp-agent-mail /data/mcp-agent-mail/mailbox 2>/dev/null || true
 
 # Seed AGENTS.md into workspace if not present (multi-agent instructions)
 if [ ! -f /data/projects/AGENTS.md ]; then
     cp /opt/acfs-repo/acfs/AGENTS.md /data/projects/AGENTS.md 2>/dev/null || true
 fi
 
+# Seed Gemini instructions into workspace
+if [ ! -f /data/projects/GEMINI.md ]; then
+    cp /opt/acfs-repo/acfs/gemini/GEMINI.md /data/projects/GEMINI.md 2>/dev/null || true
+fi
+
 # Ensure ownership
 chown -R "$TARGET_USER:$(id -gn "$TARGET_USER")" "$TARGET_HOME" 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects 2>/dev/null || true
 chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/AGENTS.md 2>/dev/null || true
+chown "$TARGET_USER:$(id -gn "$TARGET_USER")" /data/projects/GEMINI.md 2>/dev/null || true
 
 # Start code-server in background (accessible via session manager dashboard)
 if command -v code-server &>/dev/null; then
