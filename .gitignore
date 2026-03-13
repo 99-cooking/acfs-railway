@@ -1,154 +1,24 @@
-# ===========================================
-# ACFS - Agentic Coding Flywheel Setup
-# ===========================================
-
-# ----- Dependencies -----
-node_modules/
-.pnp
-.pnp.js
-
-# ----- Build outputs -----
-dist/
-build/
-out/
-.next/
-.vercel/
-
-# ----- Package manager -----
-# Using bun exclusively
-bun.lockb
-*.lock
-!bun.lock
-
-# ----- Environment & secrets -----
+# Environment & secrets
 .env
 .env.*
 !.env.example
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# ----- IDE & Editor -----
+# IDE & Editor
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 .DS_Store
-Thumbs.db
 
-# ----- Testing -----
-coverage/
-.nyc_output/
-*.lcov
-
-# ----- TypeScript -----
-*.tsbuildinfo
-next-env.d.ts
-
-# ----- Logs -----
-logs/
+# Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
 
-# ----- Temporary files -----
+# Temporary files
 tmp/
 temp/
 *.tmp
-*.temp
-test_sed_flags.sh
 
-# ----- OS generated -----
+# OS generated
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-
-# ----- Cache -----
-.cache/
-.eslintcache
-.turbo/
-
-# ----- Beads -----
-# Keep .beads directory but ignore sensitive data
-.beads/cache/
-.beads/*.log
-.beads/*.sock
-.beads/*.sock.*
-
-# ----- Local testing artifacts -----
-tests/vm/.vagrant/
-tests/vm/*.box
-tests/vm/ubuntu-*
-apps/web/mobile-screenshots/
-apps/web/test-mobile.ts
-apps/web/playwright-report/
-apps/web/test-results/
-research_screenshots/
-
-# ----- Installer test outputs -----
-*.log
-install_*.log
-
-# ----- Python (for any scripts) -----
-__pycache__/
-*.py[cod]
-*$py.class
-.Python
-*.so
-.venv/
-venv/
-ENV/
-
-# ----- Rust (if building tools) -----
-target/
-Cargo.lock
-*.rs.bk
-
-# ----- Debug -----
-*.pdb
-a.out
-
-# ----- Source conversations -----
-2025-12-20-chatgpt-website_tech_stack_update.md
-
-# bv (beads viewer) local config and caches
-.bv/
-.vercel
-.env*.local
-tests/artifacts/
-
-# Stray bv/CLI artifacts (malformed flag creates files like --graph-format.svg)
---graph-format*
-
-# Ephemeral files (core dumps, profiling, agent config backups, etc.)
-core.*
-core
-perf.data
-perf.data.old
-*.bak
-clippy.txt
-clippy.json
-clippy_results.json
-clippy_unwrap.json
-clippy_unwrap_clean.txt
-check_output.txt
-error.log
-.next_backup*/
-cline.mcp.json
-opencode.json
-windsurf.mcp.json
-*.mcp.json.*.bak
-storage.sqlite3
-storage.sqlite3-shm
-storage.sqlite3-wal
-storage.sqlite3.bak
-storage.sqlite3.corrupt-*
-storage.sqlite3-shm.corrupt-*
-storage.sqlite3-wal.corrupt-*
+Thumbs.db
