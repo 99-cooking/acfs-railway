@@ -499,15 +499,18 @@ if [ -n "${DOTFILES_REPO:-}" ] && [ ! -f "$TARGET_HOME/.dotfiles-installed" ]; t
     echo "Dotfiles installed."
 fi
 
-# Apply oh-my-openagent patch to OpenCode on first boot
+# Apply oh-my-opencode plugin to OpenCode on first boot
+# Flags are configurable via OMO_* env vars (see README)
 if [ ! -f "$TARGET_HOME/.config/opencode/opencode.json" ] || ! grep -q "oh-my-opencode" "$TARGET_HOME/.config/opencode/opencode.json" 2>/dev/null; then
-    echo "Patching OpenCode with oh-my-openagent..."
-    # Default install: Claude=yes (most common), others configurable via env
+    echo "Configuring OpenCode with oh-my-opencode plugin..."
     su - "$TARGET_USER" -c "bunx oh-my-opencode install --no-tui \
         --claude=${OMO_CLAUDE:-yes} \
         --openai=${OMO_OPENAI:-no} \
         --gemini=${OMO_GEMINI:-no} \
-        --copilot=${OMO_COPILOT:-no}" 2>/dev/null || echo "oh-my-openagent: patch skipped"
+        --copilot=${OMO_COPILOT:-no} \
+        --opencode-zen=${OMO_OPENCODE_ZEN:-no} \
+        --zai-coding-plan=${OMO_ZAI_CODING_PLAN:-no} \
+        --opencode-go=${OMO_OPENCODE_GO:-no}" 2>/dev/null || echo "oh-my-opencode: install skipped"
 fi
 
 # Create persistent mailbox directory for MCP Agent Mail

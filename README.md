@@ -42,6 +42,13 @@ A Docker image that packages **50+ developer tools and 3 AI coding agents** into
 | `SSH_PRIVATE_KEY` | No | SSH private key (for git over SSH) |
 | `SSH_PUBLIC_KEY` | No | SSH public key |
 | `DOTFILES_REPO` | No | Git URL of dotfiles repo (cloned on first boot) |
+| `OMO_CLAUDE` | No | oh-my-opencode: Claude subscription (`yes`/`no`/`max20`, default: `yes`) |
+| `OMO_OPENAI` | No | oh-my-opencode: OpenAI/ChatGPT subscription (`yes`/`no`, default: `no`) |
+| `OMO_GEMINI` | No | oh-my-opencode: Gemini integration (`yes`/`no`, default: `no`) |
+| `OMO_COPILOT` | No | oh-my-opencode: GitHub Copilot subscription (`yes`/`no`, default: `no`) |
+| `OMO_OPENCODE_ZEN` | No | oh-my-opencode: OpenCode Zen access (`yes`/`no`, default: `no`) |
+| `OMO_ZAI_CODING_PLAN` | No | oh-my-opencode: Z.ai Coding Plan (`yes`/`no`, default: `no`) |
+| `OMO_OPENCODE_GO` | No | oh-my-opencode: OpenCode Go subscription (`yes`/`no`, default: `no`) |
 
 ## How It Works
 
