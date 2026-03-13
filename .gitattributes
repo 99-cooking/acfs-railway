@@ -1,8 +1,0 @@
-
-# Use bd merge for beads JSONL files
-.beads/issues.jsonl merge=beads
-
-# Normalize installer/security-critical text files to LF to avoid hash drift.
-*.sh text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
